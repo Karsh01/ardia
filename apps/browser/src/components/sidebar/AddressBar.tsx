@@ -35,8 +35,8 @@ export function SidebarHeaderTools({ width }: { width: number }) {
   const right = useSidebarSide(windowId) === "right";
   const sidebarHint = useShortcutHint("toggleSidebar");
   const toggleX = headerToggleX(useWindowFullScreen(windowId));
-  const { buttons, step } = navButtonsFitting(width, BUTTON, toggle, toggleX);
-  const shown = tab ? buttons : [];
+  const { step } = navButtonsFitting(width, BUTTON, toggle, toggleX);
+  const shown: HeaderButton[] = [];
   const last = width - EDGE - BUTTON / 2;
   const centres = shown.map((_, i) => last - (shown.length - 1 - i) * step);
   const at = toggle ? [toggleX, ...centres] : centres;

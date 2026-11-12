@@ -20,9 +20,8 @@ import { SCROLL_EDGE, ScrollEdgeLine, useScrollEdge } from "./ScrollEdge";
 import { listTopGap } from "./geometry";
 import { startsOffScreen } from "../../state/sidebar/geometry";
 import { toggleNewTabBar } from "../../state/omnibox/newTabBar";
-import { DOCK_SHARE, DOCKED_BOTTOM, GLOW_ROOM, pageLayout, tilesFitDock, type SidebarGeometry } from "./pageLayout";
+import { DOCK_SHARE, GLOW_ROOM, pageLayout, tilesFitDock, type SidebarGeometry } from "./pageLayout";
 import { PageRows } from "./PageRows";
-import { NewTabRow } from "./NewTabRow";
 
 const NONE: string[] = [];
 type PageGeometry = { scrollY: number; viewport: number; regions: SidebarGeometry["regions"] };
@@ -126,7 +125,7 @@ export const SidebarPage = memo(function SidebarPage({ profileId, slot, paging, 
     report();
   };
   useEffect(report, [playerHeight, resting]);
-  const inlineNewTab = !docked;
+  const inlineNewTab = false;
 
   return (
     <Animated.View
@@ -188,11 +187,6 @@ export const SidebarPage = memo(function SidebarPage({ profileId, slot, paging, 
                     {playerTab ? (
                       <View style={{ paddingHorizontal: layout.sidebarInset, paddingTop: docked ? space.m : 0, paddingBottom: docked ? 0 : space.m }}>
                         <SidebarPlayer tabId={playerTab} />
-                      </View>
-                    ) : null}
-                    {docked ? (
-                      <View style={{ paddingHorizontal: layout.sidebarInset, paddingTop: layout.rowGap, paddingBottom: DOCKED_BOTTOM }}>
-                        <NewTabRow windowId={windowId} />
                       </View>
                     ) : null}
                   </>
