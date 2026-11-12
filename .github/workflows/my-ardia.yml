@@ -41,7 +41,7 @@ jobs:
           tag="my-${upstream_sha}-${tweaks_sha}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "upstream=$upstream_sha" >> "$GITHUB_OUTPUT"
-          if [ "${{ inputs.force }}" != "true" ] && gh release view "$tag" >/dev/null 2>&1; then
+          if [ "${{ inputs.force }}" != "true" ] && gh release view "$tag" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Already built $tag"
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -107,7 +107,7 @@ jobs:
       - name: Publish
         if: steps.merge.outputs.skip != 'true'
         run: |
-          gh release create "${{ steps.merge.outputs.tag }}" "$RUNNER_TEMP/Ardia-mine.zip" \
+          gh release create -R "$GITHUB_REPOSITORY" "${{ steps.merge.outputs.tag }}" "$RUNNER_TEMP/Ardia-mine.zip" \
             --target my-tweaks \
             --title "My Ardia ${{ steps.merge.outputs.version }} (${{ steps.merge.outputs.upstream }})" \
             --notes "Ardia ${{ steps.merge.outputs.version }} at upstream ${{ steps.merge.outputs.upstream }}, with my tweaks. Unzip, move Ardia.app to your user Applications folder (~/Applications), then run: xattr -cr ~/Applications/Ardia.app" \
