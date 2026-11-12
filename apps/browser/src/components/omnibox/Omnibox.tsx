@@ -364,7 +364,7 @@ export function Omnibox({
       leadingIcon={leadingIcon}
       scope={scope}
       field={field}
-      list={listAway ? null : suggestionList}
+      list={listAway || !items.length || (!hero && !(edited && typed.trim())) ? null : suggestionList}
       pulse={pulse}
       hero={hero}
       rowHeight={fieldRowHeight}

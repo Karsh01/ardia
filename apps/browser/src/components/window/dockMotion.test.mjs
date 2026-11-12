@@ -49,14 +49,12 @@ test("the traffic lights go with the sidebar: at their place when it's shown, pa
   }
 });
 
-test("the peek keeps the same gap on every edge, with a 4 pt minimum", () => {
+test("the peek sits flush against the window's left, top and bottom edges, with square corners", () => {
   for (let inset = PAGE_FRAME.min; inset <= PAGE_FRAME.max; inset++) {
     const frame = dm.cardFrameOf(inset);
-    const gap = Math.max(4, inset);
-    assert.deepEqual([frame.peek.left, frame.peek.top, frame.peek.bottom], [gap, gap, gap]);
-    if (inset >= 4) checkPeekCoversCard(frame);
+    assert.deepEqual([frame.peek.left, frame.peek.top, frame.peek.bottom, frame.peek.radius], [0, 0, 0, 0]);
   }
-  assert.equal(DEFAULT_PEEK.left, PAGE_FRAME.default);
+  assert.equal(DEFAULT_PEEK.left, 0);
 });
 
 function checkPeekCoversCard(frame) {
@@ -103,12 +101,9 @@ test("the sidebar's rows sit 9 pt from the window's edge and 9 pt from the card 
   assert.equal(dm.cardInsetAt(0.5, 190, 9), 99.5);
 });
 
-test("the card radius follows the native window radius minus the frame, and the toolbar's lights stay 21 pt into the card", () => {
-  assert.equal(dm.cardFrameOf(9).radius, 10);
-  assert.equal(dm.cardFrameOf(0).radius, 19);
-  assert.equal(dm.cardFrameOf(12).radius, 7);
-  assert.equal(dm.cardFrameOf(4).radius, 15);
-  assert.equal(pageFrameOf(18, 19, dm.PEEK_RADIUS).radius, 2);
+test("the page fills the window edge to edge with square corners, and the toolbar's lights stay 21 pt into the card", () => {
+  for (const inset of [0, 4, 9, 12]) assert.deepEqual([dm.cardFrameOf(inset).inset, dm.cardFrameOf(inset).radius], [0, 0]);
+  assert.equal(pageFrameOf(18, 19, dm.PEEK_RADIUS).radius, 0);
   assert.ok(dm.cardFrameOf(0).splitGap > 0, "split panes keep a hairline gap edge to edge, so they still read as two pages");
   assert.deepEqual(dm.toolbarLightsCenter(false, 0), [25, 21]);
   assert.deepEqual(dm.toolbarLightsCenter(false), [...dm.LIGHTS_CENTER]);
@@ -257,11 +252,11 @@ test("Arc's peek slides in on its measured spring and leaves on its ease-in-out;
   assert.ok(Math.abs(peak - arcPeak) < 0.002, `the panel's overshoot ${peak}, Arc's ${arcPeak}`);
 });
 
-test("the peek stays off the window edge even when the page frame is zero", () => {
+test("the peek is attached to the window edge whatever the page frame setting", () => {
   const frameZero = dm.cardFrameOf(PAGE_FRAME.min).peek;
-  assert.deepEqual([frameZero.left, frameZero.top, frameZero.bottom], [4, 4, 4]);
-  assert.equal(dm.peekBleed(frameZero.left), 0);
-  assert.equal(dm.peekBleed(DEFAULT_PEEK.left), 0);
+  assert.deepEqual([frameZero.left, frameZero.top, frameZero.bottom], [0, 0, 0]);
+  assert.ok(dm.peekBleed(frameZero.left) > 0, "a flush peek bleeds past the window edge so no seam shows");
+  assert.equal(dm.peekBleed(DEFAULT_PEEK.left), dm.peekBleed(0));
 });
 
 test("the peek panel covers the page up to its right edge, only while it's out", () => {

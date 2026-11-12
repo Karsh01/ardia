@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { ContextMenuArea, space, WindowDragRegion } from "../ui";
 import { layout } from "../ui/theme";
 import { TintInk } from "../ui/TintInk";
-import { useSettings, useWindowId, useWindowProfileId } from "../../state/browser/hooks";
+import { useSettings, useSidebarOpen, useWindowId, useWindowProfileId } from "../../state/browser/hooks";
 import { useHasDownloads, useNoTiles } from "../../state/sidebar/hooks";
 import { useAddressBarInSidebar, useToolbarLightsCenter } from "../../state/windows/layout";
 import { DownloadsButton } from "../downloads/DownloadsButton";
@@ -42,7 +42,8 @@ export function Sidebar({ width }: { width: number }) {
   const geometry = useRef<SidebarGeometry>({ viewport: 0, regions: { pinnedGroups: 0, list: 0 }, newTabAtTop: false, tilesFixed: true });
   const addressBar = useAddressBarInSidebar();
   const lightsY = useToolbarLightsCenter()[1];
-  const header = layout.sidebarHeader;
+  const open = useSidebarOpen();
+  const header = open ? layout.sidebarHeader : space.m;
   const hasDownloads = useHasDownloads(windowId);
   const dots = useProfileDotsShown();
   const footerDownloads = addressBar && hasDownloads;
@@ -125,7 +126,7 @@ export function Sidebar({ width }: { width: number }) {
                 <ContextMenuArea style={StyleSheet.absoluteFill} onContextMenu={() => void openSidebarMenu(windowId)}>
                   <WindowDragRegion style={StyleSheet.absoluteFill} />
                 </ContextMenuArea>
-                {addressBar ? (
+                {!open ? null : addressBar ? (
                   <SidebarHeaderTools width={width} />
                 ) : (
                   <View pointerEvents="box-none" style={{ height: layout.sidebarHeader, flexDirection: "row", alignItems: "flex-start", paddingLeft: PROFILE_INDICATOR_X, paddingRight: HEADER_RIGHT, paddingTop: lightsY - 17 }}>
