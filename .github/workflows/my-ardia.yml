@@ -1,0 +1,108 @@
+name: Build my Ardia
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build even if this Ardia version was already built
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: my-ardia
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: my-tweaks
+          fetch-depth: 0
+
+      - name: Merge the latest Ardia into my tweaks
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/ardia-browser/ardia.git
+          git fetch -q upstream main
+          upstream_sha=$(git rev-parse --short=10 upstream/main)
+          tweaks_sha=$(git rev-parse --short=7 HEAD)
+          tag="my-${upstream_sha}-${tweaks_sha}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "upstream=$upstream_sha" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.force }}" != "true" ] && gh release view "$tag" >/dev/null 2>&1; then
+            echo "Already built $tag"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git merge --no-edit upstream/main; then
+            git diff --name-only --diff-filter=U
+            echo "::error::Ardia changed the same lines as one of your tweaks. Merge upstream/main into my-tweaks by hand and push."
+            exit 1
+          fi
+          version=$(sed -n 's/.*MARKETING_VERSION = "\{0,1\}\([^";]*\)"\{0,1\};/\1/p' apps/browser/macos/Ardia.xcodeproj/project.pbxproj | sort -u | head -1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pick the newest Xcode
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Engine
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          framework=$(packages/ardiacore/scripts/fetch-engine.sh)
+          echo "ARDIACORE_FRAMEWORK=$framework" >> "$GITHUB_ENV"
+
+      - uses: pnpm/action-setup@v4
+        if: steps.merge.outputs.skip != 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.merge.outputs.skip != 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Dependencies
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          curl -LsSf https://astral.sh/uv/0.12.15/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          (cd apps/browser/macos && pod install)
+
+      - name: Build
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          dist="$RUNNER_TEMP/dist"
+          mkdir -p "$dist"
+          if ! scripts/release/archive.sh "$dist" "$ARDIACORE_FRAMEWORK" "$RUNNER_TEMP/derived" adhoc; then
+            tail -80 "$dist/archive.log"
+            exit 1
+          fi
+          app="$dist/Ardia.xcarchive/Products/Applications/Ardia.app"
+          /usr/libexec/PlistBuddy -c "Delete :SUFeedURL" "$app/Contents/Info.plist" || true
+          codesign --force --deep --sign - "$app"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Ardia-mine.zip"
+
+      - name: Publish
+        if: steps.merge.outputs.skip != 'true'
+        run: |
+          gh release create "${{ steps.merge.outputs.tag }}" "$RUNNER_TEMP/Ardia-mine.zip" \
+            --target my-tweaks \
+            --title "My Ardia ${{ steps.merge.outputs.version }} (${{ steps.merge.outputs.upstream }})" \
+            --notes "Ardia ${{ steps.merge.outputs.version }} at upstream ${{ steps.merge.outputs.upstream }}, with my tweaks. Unzip, move Ardia.app to your user Applications folder (~/Applications), then run: xattr -cr ~/Applications/Ardia.app" \
+            --latest
