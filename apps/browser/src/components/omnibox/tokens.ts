@@ -82,6 +82,7 @@ export const SUGGESTION = {
   icon: 13,
   calcIcon: 14,
   iconBox: 16,
+  chip: { height: 22, padX: space.m, gap: space.xs, radius: radius.toolbar, arrow: 10 },
 } as const;
 
 export const SELECTED_SUGGESTION_ALPHA = { dark: 0.56, light: 0.3 } as const;

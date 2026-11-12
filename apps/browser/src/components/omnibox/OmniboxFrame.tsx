@@ -48,6 +48,7 @@ export function DropdownFrame({ rootRef, onContextMenu, leadingIcon, scope, fiel
 }
 
 export function PanelFrame({ rootRef, onContextMenu, leadingIcon, scope, field, list, pulse, hero, rowHeight, bottom }: FrameProps & { hero: boolean; rowHeight: number; bottom: ReactNode }) {
+  const theme = useTheme();
   return (
     <View ref={rootRef}>
       {pulse}
@@ -67,6 +68,7 @@ export function PanelFrame({ rootRef, onContextMenu, leadingIcon, scope, field, 
           {field}
         </View>
       </ContextMenuArea>
+      {list && !hero ? <View style={{ height: 1, marginHorizontal: BAR.panel.right, backgroundColor: theme.ntpBarBorder }} /> : null}
       {list}
       {bottom}
     </View>

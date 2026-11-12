@@ -28,7 +28,7 @@ const DROPDOWN_MIN_WIDTH = 350;
 const DROPDOWN_PAST_FIELD = 137;
 const DROPDOWN_RADIUS = radius.panel;
 const PANEL_OPEN_HEIGHT = 107;
-const CENTRED_TOP_SHARE = 0.22;
+const CENTRED_TOP_SHARE = 0.3;
 
 type Box = { left: number; top: number; width: number; height: number };
 

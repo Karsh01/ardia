@@ -26,7 +26,7 @@ export function addressBarInSidebar(s: BrowserState, windowId: string): boolean 
 }
 
 export function commandBarCentred(s: BrowserState, windowId: string): boolean {
-  return s.settings.commandBarPlacement === "centred" && !!s.windows[windowId] && s.windows[windowId]!.kind !== "small";
+  return !!s.windows[windowId] && s.windows[windowId]!.kind !== "small";
 }
 
 export function useAddressBarInSidebar(): boolean {

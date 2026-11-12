@@ -11,7 +11,7 @@ import { FolderPicker } from "./DialogParts";
 import { bookmarkDialog } from "./tokens";
 import { useAddressBarInSidebar } from "../../state/windows/layout";
 import { useToolbarRow } from "../toolbar/useToolbarRow";
-import { SIDEBAR_HEADER_WITH_FIELD } from "../sidebar/geometry";
+
 import { useCardFrame } from "../window/cardFrame";
 
 export function BookmarkDialog() {
@@ -75,8 +75,8 @@ function DialogPanel({ state }: { state: BookmarkDialogState }) {
       place={
         addressBar
           ? sidebarRight
-            ? { top: SIDEBAR_HEADER_WITH_FIELD + bookmarkDialog.belowField, right: layout.sidebarInset }
-            : { top: SIDEBAR_HEADER_WITH_FIELD + bookmarkDialog.belowField, left: layout.sidebarInset }
+            ? { top: layout.sidebarHeader + bookmarkDialog.belowField, right: layout.sidebarInset }
+            : { top: layout.sidebarHeader + bookmarkDialog.belowField, left: layout.sidebarInset }
           : { top: frame.inset + toolbarHeight - bookmarkDialog.belowToolbar, right: cardRight + bookmarkDialog.rightInset }
       }
     >

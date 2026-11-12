@@ -369,14 +369,14 @@ export function Omnibox({
       hero={hero}
       rowHeight={fieldRowHeight}
       bottom={
-        <BottomRow
+        hero ? <BottomRow
           hero={hero}
           addChip={<AddChip onPress={barActions.openTabOrFile} />}
           onDictate={barActions.dictate}
           label={destinationLabel(current)}
           enabled={!hero || !!typed.trim() || previewing}
           onGo={barActions.choose}
-        />
+        /> : null
       }
     />
   );

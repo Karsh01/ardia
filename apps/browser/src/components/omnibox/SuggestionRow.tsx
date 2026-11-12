@@ -38,7 +38,7 @@ export function SuggestionIcon({ suggestion: s, color }: { suggestion: Suggestio
 function labels(s: Suggestion): [string, string | null] {
   switch (s.kind) {
     case "page":
-      if (s.tabId) return [s.title || displayUrl(s.url), "Switch to Tab"];
+      if (s.tabId) return [s.title || displayUrl(s.url), null];
       return s.title ? [s.title, displayUrl(s.url)] : [displayUrl(s.url), null];
     case "search":
       return [s.bang ? `Search ${s.engine} for ${s.query}` : s.query, null];
@@ -54,6 +54,16 @@ function labels(s: Suggestion): [string, string | null] {
       return [s.title, s.subtitle ? `${host} · ${s.subtitle}` : host];
     }
   }
+}
+
+function SwitchToTabChip() {
+  const theme = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: SUGGESTION.chip.gap, paddingHorizontal: SUGGESTION.chip.padX, height: SUGGESTION.chip.height, borderRadius: SUGGESTION.chip.radius, backgroundColor: theme.commandBarHover }}>
+      <Text size="small" tone="textSecondary">Switch to Tab</Text>
+      <Symbol name="arrow.right" size={SUGGESTION.chip.arrow} weight="semibold" color={theme.textSecondary} style={{ width: SUGGESTION.chip.arrow, height: SUGGESTION.chip.arrow }} />
+    </View>
+  );
 }
 
 export type RowActions = {
@@ -143,6 +153,7 @@ const SuggestionRow = memo(
             </Text>
             <View style={{ flex: 1 }} />
             {hint && !removable ? <Text size="small" tone="textTertiary">{hint}</Text> : null}
+            {!hint && !removable && s.kind === "page" && s.tabId && (selected || hovered) ? <SwitchToTabChip /> : null}
             {removable ? (
               <Button variant="icon" icon="xmark" size="s" color={theme.textSecondary} tooltip="Remove from History" onPress={onRemove} />
             ) : null}

@@ -10,7 +10,7 @@ import { DownloadsButton } from "../downloads/DownloadsButton";
 import { PROFILE_INDICATOR_X, ProfileIndicator } from "../profiles/ProfileIndicator";
 import { usePagerPages } from "../../state/windows/profilePager";
 import { PROFILE_DOTS_HEIGHT, ProfileDots, useProfileDotsShown } from "../profiles/ProfileDots";
-import { SidebarAddressRow, SidebarHeaderTools } from "./AddressBar";
+import { SidebarHeaderTools } from "./AddressBar";
 import { DragGhost } from "./DragGhost";
 import { DragProvider } from "./DragProvider";
 import type { DragController } from "./dragController";
@@ -18,9 +18,9 @@ import type { Ghost } from "./dragModel";
 import { SidebarDropArea } from "./SidebarDropArea";
 import { FolderPanel } from "./FolderPanel";
 import { dismissHover, dismissHoverIn } from "../../state/sidebar/hover";
-import { PinFieldZone, PinSlotZone } from "./PinnedGrid";
+import { PinSlotZone } from "./PinnedGrid";
 import { ResizeHandle } from "./ResizeHandle";
-import { SIDEBAR_FIELD, SIDEBAR_FOOTER_DOWNLOADS, SIDEBAR_HEADER_WITH_FIELD } from "./geometry";
+import { SIDEBAR_FOOTER_DOWNLOADS } from "./geometry";
 import { closeFolderPanel } from "../../state/sidebar/tileFolderUi";
 import { openSidebarMenu } from "../../state/sidebar/menus";
 import { GLOW_ROOM, ROW_PITCH, type SidebarGeometry } from "./pageLayout";
@@ -42,7 +42,7 @@ export function Sidebar({ width }: { width: number }) {
   const geometry = useRef<SidebarGeometry>({ viewport: 0, regions: { pinnedGroups: 0, list: 0 }, newTabAtTop: false, tilesFixed: true });
   const addressBar = useAddressBarInSidebar();
   const lightsY = useToolbarLightsCenter()[1];
-  const header = addressBar ? SIDEBAR_HEADER_WITH_FIELD : layout.sidebarHeader;
+  const header = layout.sidebarHeader;
   const hasDownloads = useHasDownloads(windowId);
   const dots = useProfileDotsShown();
   const footerDownloads = addressBar && hasDownloads;
@@ -126,10 +126,7 @@ export function Sidebar({ width }: { width: number }) {
                   <WindowDragRegion style={StyleSheet.absoluteFill} />
                 </ContextMenuArea>
                 {addressBar ? (
-                  <>
-                    <SidebarHeaderTools width={width} />
-                    <SidebarAddressRow width={width} />
-                  </>
+                  <SidebarHeaderTools width={width} />
                 ) : (
                   <View pointerEvents="box-none" style={{ height: layout.sidebarHeader, flexDirection: "row", alignItems: "flex-start", paddingLeft: PROFILE_INDICATOR_X, paddingRight: HEADER_RIGHT, paddingTop: lightsY - 17 }}>
                     <ProfileIndicator room={width - PROFILE_INDICATOR_X - HEADER_RIGHT - (hasDownloads ? SIDEBAR_FOOTER_DOWNLOADS.size + 2 : 0)} />
@@ -142,11 +139,7 @@ export function Sidebar({ width }: { width: number }) {
 
             <ResizeHandle windowId={windowId} />
             {ghost && !ghost.landing && nothingPinned ? (
-              addressBar ? (
-                <PinFieldZone top={SIDEBAR_FIELD.top} height={SIDEBAR_FIELD.height} />
-              ) : (
-                <PinSlotZone />
-              )
+              <PinSlotZone />
             ) : null}
             <FolderPanel windowId={windowId} />
             {ghost ? <DragGhost ghost={ghost} /> : null}
