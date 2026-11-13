@@ -1,9 +1,9 @@
 import { displayHost, displayUrl, hostOf, type Suggestion } from "@ardia/core";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Image, Pressable, Text as NativeText, View } from "react-native";
 import { Button, Symbol, Text, useHover, useTheme, withAlpha, type Theme } from "../ui";
 import { Favicon } from "../favicon/Favicon";
-import { SELECTED_SUGGESTION_ALPHA, SUGGESTION } from "./tokens";
+import { CRA_BAR, SELECTED_SUGGESTION_ALPHA, SUGGESTION } from "./tokens";
 
 const ICON_BOX = { width: SUGGESTION.iconBox, height: SUGGESTION.iconBox } as const;
 
@@ -66,6 +66,95 @@ function SwitchToTabChip() {
   );
 }
 
+export const craSelection = (theme: Theme) => withAlpha(theme.powerUpColor ?? CRA_BAR.defaultSelection, CRA_BAR.selectionAlpha);
+
+function craDetail(s: Suggestion): string {
+  switch (s.kind) {
+    case "page": {
+      if (s.tabId || !s.title) return "";
+      const url = displayUrl(s.url);
+      return url.toLowerCase() === s.title.toLowerCase() ? "" : ` — ${url}`;
+    }
+    case "calc":
+      return ` — ${s.expression}`;
+    case "provider": {
+      const host = displayHost(hostOf(s.url)) || displayUrl(s.url);
+      return ` — ${s.subtitle ? `${host} · ${s.subtitle}` : host}`;
+    }
+    case "extension":
+      return ` — ${s.open === "action" ? "Open Extension" : "Extension Options"}`;
+    default:
+      return "";
+  }
+}
+
+function craTitle(s: Suggestion): string {
+  return labels(s)[0];
+}
+
+function CraList({ items, selectedIndex, trailing, actions }: { items: Suggestion[]; selectedIndex: number; trailing: string | null; actions: RowActions }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const lit = hovered ?? selectedIndex;
+  return (
+    <View
+      onMouseLeave={() => setHovered(null)}
+      style={{ paddingHorizontal: CRA_BAR.listX, paddingTop: CRA_BAR.listTop, paddingBottom: CRA_BAR.listBottom, gap: CRA_BAR.row.gap }}
+    >
+      {items.map((s, i) => (
+        <CraRow key={i} suggestion={s} lit={i === lit} hint={i === 0 ? trailing : null} actions={actions} onHover={() => setHovered(i)} />
+      ))}
+    </View>
+  );
+}
+
+function CraRow({ suggestion: s, lit, hint, actions, onHover }: { suggestion: Suggestion; lit: boolean; hint: string | null; actions: RowActions; onHover(): void }) {
+  const theme = useTheme();
+  const tone = theme.dark ? "dark" : "light";
+  const row = CRA_BAR.row;
+  const selection = craSelection(theme);
+  const inkColor = lit ? row.ink.selected : row.ink[tone];
+  const secondary = lit ? row.secondary.selected : row.secondary[tone];
+  const isTab = s.kind === "page" && !!s.tabId;
+  const favicon = s.kind === "page" || s.kind === "create" || s.kind === "provider" || (s.kind === "extension" && !!s.icon);
+  const tileFill = favicon ? (lit ? row.tileFill.selected : undefined) : s.kind === "action" ? row.tileFill[tone] : undefined;
+  const end = hint ?? (s.kind === "action" ? s.hint : s.kind === "provider" ? s.provider : null);
+  const onRemove = isRemovable(s) && lit ? () => actions.remove(s.url) : undefined;
+  return (
+    <Pressable onPress={() => actions.choose(s)}>
+      <View
+        onMouseEnter={onHover}
+        style={{
+          height: row.height,
+          borderRadius: row.radius,
+          flexDirection: "row",
+          alignItems: "center",
+          paddingLeft: row.left,
+          paddingRight: row.right,
+          backgroundColor: lit ? selection : undefined,
+        }}
+      >
+        <View style={{ width: row.tile, height: row.tile, borderRadius: row.tileRadius, alignItems: "center", justifyContent: "center", backgroundColor: tileFill }}>
+          <SuggestionIcon suggestion={s} color={inkColor} />
+        </View>
+        <NativeText numberOfLines={1} style={{ flex: 1, marginLeft: row.titleGap, ...row.title, color: inkColor }}>
+          {craTitle(s)}
+          <NativeText style={{ ...row.detail, color: secondary }}>{craDetail(s)}</NativeText>
+        </NativeText>
+        {onRemove ? <Button variant="icon" icon="xmark" size="s" color={inkColor} tooltip="Remove from History" onPress={onRemove} /> : null}
+        {!onRemove && isTab ? (
+          <>
+            <NativeText style={{ marginLeft: row.trailingGap, ...row.tabTrailing, color: secondary }}>Switch to Tab</NativeText>
+            <View style={{ marginLeft: row.arrowGap, width: row.tile, height: row.tile, borderRadius: row.tileRadius, alignItems: "center", justifyContent: "center", backgroundColor: lit ? row.tileFill.selected : row.tileFill[tone] }}>
+              <Symbol name="arrow.right" size={row.arrowGlyph} weight="medium" color={lit ? withAlpha(selection, 1) : row.arrow[tone]} style={{ width: row.tile, height: row.tile }} />
+            </View>
+          </>
+        ) : null}
+        {!onRemove && !isTab && end ? <NativeText style={{ marginLeft: row.trailingGap, ...row.trailing, color: secondary }}>{end}</NativeText> : null}
+      </View>
+    </Pressable>
+  );
+}
+
 export type RowActions = {
   choose(s: Suggestion): void;
   remove(url: string): void;
@@ -77,14 +166,17 @@ export const SuggestionList = memo(function SuggestionList({
   trailing,
   dropdown,
   actions,
+  cra = false,
 }: {
   items: Suggestion[];
   selectedIndex: number;
   trailing: string | null;
   dropdown: boolean;
   actions: RowActions;
+  cra?: boolean;
 }) {
   if (!items.length) return null;
+  if (cra) return <CraList items={items} selectedIndex={selectedIndex} trailing={trailing} actions={actions} />;
   return (
     <View style={{ paddingHorizontal: dropdown ? SUGGESTION.dropdownListX : SUGGESTION.listX, paddingBottom: dropdown ? SUGGESTION.dropdownListBelow : SUGGESTION.listBelow }}>
       {items.map((s, i) => (

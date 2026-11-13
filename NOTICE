@@ -25,3 +25,5 @@ Ardia builds on and ships third-party software under its own licenses, including
 - The !bang list by Kagi Search and imput (MIT, see third_party/bangs/LICENSE), from Helium's
   services.helium.imput.net/bangs.json: a snapshot in packages/core/src/bangList.ts
 - React Native and React Native macOS (MIT)
+- Cra (MIT), copyright (c) 2026 Victor Kildahl, https://github.com/VictorKildahl/cra: the command bar's layout, sizes
+  and colours in apps/browser/src/components/omnibox (CRA_BAR) follow Cra's CommandBarView

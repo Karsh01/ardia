@@ -30,7 +30,7 @@ import { destinationLabel } from "./GoButton";
 import { BottomRow, DropdownFrame, PanelFrame } from "./OmniboxFrame";
 import { ScopePulse } from "./ScopePulse";
 import { barKeyDown, barKeyDownEvents, type BarKeyEvent } from "./omniboxKeys";
-import { ADD_CHIP, BAR } from "./tokens";
+import { ADD_CHIP, BAR, CRA_BAR } from "./tokens";
 import { useBarItems } from "./useBarItems";
 import { useHeldSelection, useProviderEnter } from "./heldSelection";
 import { useBarText } from "./useBarText";
@@ -66,6 +66,7 @@ export function Omnibox({
   const engine = useSettings((st) => defaultSearchEngine(st));
   const currentUrl = useTab(tabId, (t) => (opensTab ? "" : (t?.url ?? "")));
   const hero = variant === "hero";
+  const cra = variant === "panel" && floating;
   const dropdown = variant === "sidebar";
 
   const noneSelected = opensTab ? -1 : 0;
@@ -77,7 +78,7 @@ export function Omnibox({
   useEffect(() => bangEnter.cancel(), [bangEnter, typed, selected, scope]);
   const root = useRef<View>(null);
 
-  const { items, completion, inline, shownCompletion, value, selectedIndex, current, tabScope, previewing, unpreviewed } = useBarItems({
+  const { items: allItems, completion, inline, shownCompletion, value, selectedIndex, current, tabScope, previewing, unpreviewed } = useBarItems({
     input,
     typed,
     edited,
@@ -92,6 +93,7 @@ export function Omnibox({
     currentUrl,
   });
 
+  const items = cra ? allItems.slice(0, CRA_BAR.maxRows) : allItems;
   useHeldSelection(items, typed, scope, selectedIndex, dispatch);
   const waitForProvider = useProviderEnter(items, typed, scope, (s, disposition) => choose(s, disposition));
 
@@ -268,7 +270,7 @@ export function Omnibox({
     current && (typed || scope) && current.kind !== "search" && !(scope?.kind === "provider" && current.kind === "provider") ? (
       <SuggestionIcon suggestion={current} color={theme.textPrimary} />
     ) : (
-      <Symbol name={incognito ? INCOGNITO_ICON : "magnifyingglass"} size={BAR.leadingIcon} weight="medium" color={hero ? theme.textSecondary : theme.textPrimary} style={{ width: BAR.iconSlot, height: BAR.iconSlot }} />
+      <Symbol name={incognito ? INCOGNITO_ICON : "magnifyingglass"} size={cra ? CRA_BAR.glyph : BAR.leadingIcon} weight="medium" color={hero ? theme.textSecondary : theme.textPrimary} style={{ width: BAR.iconSlot, height: BAR.iconSlot }} />
     );
 
   const focused = useRef(false);
@@ -286,7 +288,7 @@ export function Omnibox({
     <BarField
       inputRef={input}
       variant={variant}
-      floating={floating}
+      floating={floating} cra={cra}
       scope={scope}
       incognito={incognito}
       onLayout={focusOnce}
@@ -338,7 +340,7 @@ export function Omnibox({
       selectedIndex={selectedIndex}
       trailing={tabScope ? `Search ${tabScope.name}  ⇥` : null}
       dropdown={dropdown}
-      actions={rowActions}
+      actions={rowActions} cra={cra}
     />
   );
 
@@ -366,7 +368,7 @@ export function Omnibox({
       field={field}
       list={listAway || !items.length || (!hero && !(edited && typed.trim())) ? null : suggestionList}
       pulse={pulse}
-      hero={hero}
+      hero={hero} cra={cra}
       rowHeight={fieldRowHeight}
       bottom={
         hero ? <BottomRow

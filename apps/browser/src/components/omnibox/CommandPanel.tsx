@@ -8,11 +8,10 @@ import { useActiveTabIdWhile, useCommandBarCentred, useTabHasUrlWhile } from "..
 import { usePage } from "../../state/tabs/pageState";
 import { dismissHover, setRowsCovered } from "../../state/sidebar/hover";
 import { useCardAnchors, useUrlAnchors } from "../../state/windows/layout";
-import { barWidth } from "../ntp/NewTabPage";
 import { closeNewTabBar } from "../../state/omnibox/newTabBar";
 import type { NewTabTarget } from "../../state/browser/types";
 import { Omnibox } from "./Omnibox";
-import { BAR, PANEL_TEXT_LEFT, GROW } from "./tokens";
+import { BAR, CRA_BAR, PANEL_TEXT_LEFT, GROW } from "./tokens";
 import { closePanelToHeroBar, type BarDismissal } from "../../state/omnibox/barState";
 import { insecureLevel, urlTextLeft } from "../toolbar/Toolbar";
 import { useToolbarRow } from "../toolbar/useToolbarRow";
@@ -28,7 +27,6 @@ const DROPDOWN_MIN_WIDTH = 350;
 const DROPDOWN_PAST_FIELD = 137;
 const DROPDOWN_RADIUS = radius.panel;
 const PANEL_OPEN_HEIGHT = 107;
-const CENTRED_TOP_SHARE = 0.3;
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -59,7 +57,7 @@ export function CommandPanel({ windowWidth }: { windowWidth: number }) {
 
   if (centred && card) {
     return (
-      <Grow from={null} frame={centredFrame(card)} openHeight={PANEL_OPEN_HEIGHT} radius={PANEL_RADIUS} surface={surface(PANEL_RADIUS)}>
+      <Grow from={null} frame={centredFrame(card)} openHeight={CRA_BAR.fieldHeight} radius={CRA_BAR.radius} surface={craSurface(theme)}>
         <OutsidePressArea onOutsidePress={onCancel}>
           <Omnibox key={activeId} variant="panel" floating tabId={activeId} initialText={panel.initialText} onCancel={onCancel} onDone={onDone} />
         </OutsidePressArea>
@@ -113,10 +111,24 @@ function panelSurface(theme: ReturnType<typeof useTheme>, radius: number) {
   };
 }
 
+function craSurface(theme: ReturnType<typeof useTheme>) {
+  const tone = theme.dark ? "dark" : "light";
+  return {
+    fill: hex(CRA_BAR.fill[tone]),
+    cornerRadius: CRA_BAR.radius,
+    borderColor: hex(CRA_BAR.border[tone]),
+    borderWidth: 1,
+    shadowColor: shadow.dialog.color,
+    shadowOpacity: theme.panelShadowOpacity,
+    shadowRadius: shadow.dialog.radius,
+    shadowOffset: shadow.dialog.offset,
+  };
+}
+
 function centredFrame(card: Box) {
-  const width = barWidth(card.width);
+  const width = Math.min(CRA_BAR.width, card.width - CRA_BAR.windowMargin);
   const left = card.left + (card.width - width) / 2;
-  const top = card.top + Math.max(WINDOW_MARGIN, Math.round(card.height * CENTRED_TOP_SHARE));
+  const top = card.top + Math.max(WINDOW_MARGIN, Math.round(card.height / 2 - CRA_BAR.aboveMiddle));
   return { left, top, width };
 }
 
@@ -128,9 +140,9 @@ function CentredBar({ windowId, tabId, target, card }: { windowId: string; tabId
     <Grow
       from={null}
       frame={centredFrame(card)}
-      openHeight={PANEL_OPEN_HEIGHT}
-      radius={PANEL_RADIUS}
-      surface={panelSurface(theme, PANEL_RADIUS)}
+      openHeight={CRA_BAR.fieldHeight}
+      radius={CRA_BAR.radius}
+      surface={craSurface(theme)}
     >
       <OutsidePressArea onOutsidePress={onCancel}>
         <Omnibox key={`newTab:${target.kind}`} variant="panel" floating tabId={tabId} opensTab={target} onCancel={onCancel} onDone={onDone} />

@@ -5,7 +5,7 @@ import { Button, capsule, ContextMenuArea, ink, useHover, useTheme } from "../ui
 import { GlassFill, useGlass } from "../ui/Glass";
 import { GoButton } from "./GoButton";
 import { ScopeChip } from "./ScopeChip";
-import { BAR, GO_BUTTON } from "./tokens";
+import { BAR, CRA_BAR, GO_BUTTON } from "./tokens";
 
 type FrameProps = {
   rootRef: RefObject<View | null>;
@@ -18,6 +18,7 @@ type FrameProps = {
 };
 
 const ICON_SLOT = { width: BAR.iconSlot, alignItems: "center" } as const;
+const CRA_ICON_SLOT = { width: CRA_BAR.iconBox, alignItems: "center" } as const;
 
 export function DropdownFrame({ rootRef, onContextMenu, leadingIcon, scope, field, list, pulse, onSiteControls }: FrameProps & { onSiteControls: (() => void) | null }) {
   const theme = useTheme();
@@ -47,7 +48,7 @@ export function DropdownFrame({ rootRef, onContextMenu, leadingIcon, scope, fiel
   );
 }
 
-export function PanelFrame({ rootRef, onContextMenu, leadingIcon, scope, field, list, pulse, hero, rowHeight, bottom }: FrameProps & { hero: boolean; rowHeight: number; bottom: ReactNode }) {
+export function PanelFrame({ rootRef, onContextMenu, leadingIcon, scope, field, list, pulse, hero, cra = false, rowHeight, bottom }: FrameProps & { hero: boolean; cra?: boolean; rowHeight: number; bottom: ReactNode }) {
   const theme = useTheme();
   return (
     <View ref={rootRef}>
@@ -57,18 +58,18 @@ export function PanelFrame({ rootRef, onContextMenu, leadingIcon, scope, field, 
           style={{
             flexDirection: "row",
             alignItems: "center",
-            height: hero ? BAR.panel.heroHeight : rowHeight,
-            paddingLeft: hero ? BAR.panel.heroIconLeft : BAR.panel.iconLeft,
-            paddingRight: BAR.panel.right,
-            gap: hero ? BAR.panel.heroGap : BAR.panel.gap,
+            height: cra ? CRA_BAR.fieldHeight : hero ? BAR.panel.heroHeight : rowHeight,
+            paddingLeft: cra ? CRA_BAR.iconLeft : hero ? BAR.panel.heroIconLeft : BAR.panel.iconLeft,
+            paddingRight: cra ? CRA_BAR.right : BAR.panel.right,
+            gap: cra ? CRA_BAR.fieldGap : hero ? BAR.panel.heroGap : BAR.panel.gap,
           }}
         >
-          <View style={ICON_SLOT}>{leadingIcon}</View>
+          <View style={cra ? CRA_ICON_SLOT : ICON_SLOT}>{leadingIcon}</View>
           {scope && <ScopeChip scope={scope} large={hero} />}
           {field}
         </View>
       </ContextMenuArea>
-      {list && !hero ? <View style={{ height: 1, marginHorizontal: BAR.panel.right, backgroundColor: theme.ntpBarBorder }} /> : null}
+      {list && !hero ? <View style={{ height: 1, marginHorizontal: cra ? CRA_BAR.dividerInset : BAR.panel.right, backgroundColor: cra ? CRA_BAR.divider[theme.dark ? "dark" : "light"] : theme.ntpBarBorder }} /> : null}
       {list}
       {bottom}
     </View>
