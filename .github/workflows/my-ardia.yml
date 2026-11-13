@@ -70,7 +70,7 @@ jobs:
       - name: Engine
         if: steps.merge.outputs.skip != 'true'
         run: |
-          framework=$(packages/ardiacore/scripts/fetch-engine.sh)
+          framework=$(packages/ardiacore/scripts/fetch-engine.sh || packages/ardiacore/scripts/fetch-engine.sh --nearest)
           echo "ARDIACORE_FRAMEWORK=$framework" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v4
