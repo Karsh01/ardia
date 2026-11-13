@@ -40,10 +40,10 @@ test("borderless mode zeros the inset whatever the other options are", () => {
   assert.equal(pageFrameInsetOf(9, { ...off, borderlessMode: true, fullScreen: true, tabsHidden: true }), 0);
 });
 
-test("every frame is edge to edge and square, and the peek is attached to the window edge", () => {
-  for (const inset of [0, 9, 12]) {
-    const frame = pageFrameOf(inset, 19, 12);
-    assert.deepEqual([frame.inset, frame.radius], [0, 0]);
-    assert.deepEqual(frame.peek, { left: 0, top: 0, bottom: 0, radius: 0 });
-  }
+test("a zero frame is square; a positive frame follows the window radius minus the inset", () => {
+  assert.equal(pageFrameOf(0, 19, 12).radius, 0);
+  assert.equal(pageFrameOf(9, 19, 12).radius, 10);
+  assert.equal(pageFrameOf(12, 19, 12).radius, 7);
+  assert.equal(pageFrameOf(0, 19, 12).peek.radius, 12, "the sidebar peek floats, so it keeps its rounded corners");
+  assert.equal(pageFrameOf(0, 19, 20).peek.radius, 15);
 });
