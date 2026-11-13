@@ -8,6 +8,31 @@ const SPLIT_MIN_GAP = 2;
 
 export const validPageFrame = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= PAGE_FRAME.min && v <= PAGE_FRAME.max;
 
+export function pageFrameInsetOf(
+  inset: number,
+  opts: {
+    borderlessMode?: boolean;
+    zeroInFullScreen: boolean;
+    fullScreen: boolean;
+    zeroWhenTabsHidden: boolean;
+    tabsHidden: boolean;
+  },
+): number {
+  if (opts.borderlessMode) return 0;
+  if (opts.fullScreen && opts.zeroInFullScreen) return 0;
+  if (opts.fullScreen && opts.tabsHidden && opts.zeroWhenTabsHidden) return 0;
+  return inset;
+}
+
+export const pageFrameInset = (settings: { pageFrame: number; borderlessMode?: boolean }): number =>
+  pageFrameInsetOf(settings.pageFrame, {
+    borderlessMode: !!settings.borderlessMode,
+    zeroInFullScreen: false,
+    fullScreen: false,
+    zeroWhenTabsHidden: false,
+    tabsHidden: false,
+  });
+
 export type PageFrame = {
   inset: number;
   radius: number;

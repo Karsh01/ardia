@@ -30,6 +30,7 @@ struct ArdiaLeave {
 
 struct ArdiaFrameHold {
   BOOL awaiting{};
+  BOOL restoring{};
   NSUInteger generation{};
   NSArray *mark;
   __weak NSView *pane;
@@ -82,7 +83,8 @@ struct ArdiaPageReports {
   BOOL seenByUser{YES};
   BOOL inPictureInPicture{};
   BOOL autoPictureInPictureActive{};
-  BOOL leftAppInPictureInPicture{};
+  BOOL keptByWindowServer{};
+  BOOL playedForAutoPictureInPicture{};
 };
 
 struct ArdiaCommits {
@@ -204,6 +206,7 @@ typedef NS_ENUM(NSInteger, ArdiaTransfer) {
 - (void)schedulePainting;
 - (void)leaveScreen;
 - (void)beginFrameHoldIfCold;
+- (void)exposePage;
 - (void)finishFrameHold;
 - (void)stopHolding;
 - (void)takeFocusFromLingeringPane;
@@ -260,7 +263,9 @@ typedef NS_ENUM(NSInteger, ArdiaTransfer) {
 - (void)updateAutoPictureInPicture;
 - (BOOL)leftAppInPictureInPicture;
 - (BOOL)playsForAutoPictureInPicture;
-- (void)leaveAppInPictureInPicture:(BOOL)leaving;
+- (void)autoPictureInPictureInputsChanged;
+- (void)noteStayedOnAppSwitch;
++ (BOOL)playsForAutoPictureInPictureInWindow:(NSWindow *)window;
 @end
 
 @interface ArdiaWebView (NavigationInternal)
@@ -279,6 +284,7 @@ typedef NS_ENUM(NSInteger, ArdiaTransfer) {
 - (void)emitZoom;
 - (void)runChromeCommand:(int)command;
 - (void)thawHiddenPage;
+- (BOOL)awaitsFirstDocument;
 @end
 
 @interface ArdiaWebView (InputMonitorsInternal)
@@ -323,7 +329,6 @@ NSString *PeekConfigJSON(ArdiaWebView *view);
 NSDictionary *_Nullable RecentClickPoint(ArdiaWebView *view);
 
 void InstallControlPressMonitor();
-void WatchAppActivationForPictureInPicture();
 BOOL TracingPictureInPicture();
 
 }

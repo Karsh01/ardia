@@ -45,7 +45,7 @@
 
 using ardiacore::NS;
 
-namespace {
+namespace ardiacore {
 
 CGImageRef CreatePicture(const SkBitmap& bitmap) {
   if (bitmap.drawsNothing() || bitmap.bytesPerPixel() != 4 ||
@@ -86,6 +86,10 @@ CGImageRef CreatePicture(const SkBitmap& bitmap) {
   CGColorSpaceRelease(space);
   return image;
 }
+
+}
+
+namespace {
 
 TabSharingInfoBarDelegate* TabSharingDelegateFor(content::WebContents* contents,
                                                  content::WebContents* capturer) {
@@ -139,7 +143,7 @@ TabSharingInfoBarDelegate* TabSharingDelegateFor(content::WebContents* contents,
   view->CopyFromSurface(
       gfx::Rect(), gfx::Size(), base::Seconds(timeout),
       base::BindOnce(^(const content::CopyFromSurfaceResult& result) {
-        CGImageRef image = result.has_value() ? CreatePicture(result->bitmap) : nullptr;
+        CGImageRef image = result.has_value() ? ardiacore::CreatePicture(result->bitmap) : nullptr;
         content::GetUIThreadTaskRunner({})->PostTask(FROM_HERE, base::BindOnce(^{
                                                        done(image);
                                                        if (image) {
@@ -167,6 +171,19 @@ TabSharingInfoBarDelegate* TabSharingDelegateFor(content::WebContents* contents,
   if (_contents) {
     ardiacore::NoteTabShownByHost(_contents, shown);
   }
+}
+
+- (BOOL)noteInShownSlot {
+  return _contents && ardiacore::NoteTabInShownSlot(_contents);
+}
+
+- (void)whenSizeRestored:(void (^)(void))restored {
+  if (!_contents) {
+    restored();
+    return;
+  }
+  ardiacore::WhenTabSizeRestored(
+      _contents, base::BindOnce([](void (^done)(void)) { done(); }, restored));
 }
 
 - (void)exitFullscreen {

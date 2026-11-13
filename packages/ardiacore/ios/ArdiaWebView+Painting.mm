@@ -215,6 +215,7 @@ BOOL Above(NSView *a, NSView *b) {
 
 - (void)applyPainting {
   if (_frameHold.awaiting && !_visible && !_reveal.active) [self finishFrameHold];
+  if (_visible || _reveal.active) [self exposePage];
   if (_visible) [self sinkLingeringPane];
   if (_visible) [self takeFocusFromLingeringPane];
   [self beginFrameHoldIfCold];
@@ -228,9 +229,10 @@ BOOL Above(NSView *a, NSView *b) {
   }
   [CATransaction commit];
   if (TraceVisibility())
-    NSLog(@"[ardiacore-vis] %@ paint visible=%d warm=%d tab=%d page=%@ inWindow=%ld hiddenAncestor=%d", _transferKey,
-          _visible, _warm, _tab ? (int)_tab.tabId : -1, _tab.view.superview == self ? @"here" : @"elsewhere",
-          (long)self.window.windowNumber, _tab.view.isHiddenOrHasHiddenAncestor);
+    NSLog(@"[ardiacore-vis] %@ paint visible=%d warm=%d tab=%d page=%@ inWindow=%ld hiddenAncestor=%d alpha=%d reveal=%d awaiting=%d restoring=%d",
+          _transferKey, _visible, _warm, _tab ? (int)_tab.tabId : -1, _tab.view.superview == self ? @"here" : @"elsewhere",
+          (long)self.window.windowNumber, _tab.view.isHiddenOrHasHiddenAncestor, (int)self.alphaValue, _reveal.active,
+          _frameHold.awaiting, _frameHold.restoring);
 }
 
 + (void)noteShown:(ArdiaCoreTab *)tab {
@@ -258,12 +260,20 @@ BOOL Above(NSView *a, NSView *b) {
 }
 
 - (BOOL)seenByUser {
-  return _visible && !_reports.leftAppInPictureInPicture && [ArdiaWindowController userSees:self.window];
+  return _visible && [ArdiaWindowController userSees:self.window];
 }
 
 - (void)userSightChanged {
   if (_tab) [ArdiaWebView noteShown:_tab];
   const BOOL seen = self.seenByUser;
+  const BOOL kept = seen && _visible && [ArdiaWindowController userSeesOnlyThroughWindowServer:self.window];
+  if (!kept) {
+    _reports.keptByWindowServer = NO;
+  } else if (!_reports.keptByWindowServer && self.playsForAutoPictureInPicture) {
+    _reports.keptByWindowServer = YES;
+    [self traceAutoPictureInPicture:@"app: the window server still shows the tab, AppKit's occlusion overruled"];
+    [self emit:@"autoPictureInPictureKept" payload:@{@"appSwitch" : @NO}];
+  }
   if (seen == _reports.seenByUser) return;
   _reports.seenByUser = seen;
   [self traceAutoPictureInPicture:seen ? @"app: the user sees the tab" : @"app: the user left the tab"];
@@ -329,6 +339,23 @@ BOOL Above(NSView *a, NSView *b) {
          self.alphaValue > 0 && !self.isHiddenOrHasHiddenAncestor;
 }
 
+- (void)exposePage {
+  if (!_tab || !self.window || _tab.view.superview != self) return;
+  if (![_tab noteInShownSlot] || _frameHold.restoring) return;
+  [self finishFrameHold];
+  _frameHold.awaiting = YES;
+  _frameHold.restoring = YES;
+  _frameHold.tookOverFrom = nil;
+  const NSUInteger generation = ++_frameHold.generation;
+  [AwaitingFrames() addObject:self];
+  if (TraceVisibility()) NSLog(@"[ardiacore-vis] %@ waits for a frame at its own size", _transferKey);
+  __weak ArdiaWebView *weakSelf = self;
+  [_tab whenSizeRestored:^{
+    ArdiaWebView *view = weakSelf;
+    if (view && view->_frameHold.restoring && view->_frameHold.generation == generation) [view frameShown:YES];
+  }];
+}
+
 - (void)beginFrameHoldIfCold {
   NSView *page = _tab.view;
   NSWindow *window = self.window;
@@ -376,6 +403,7 @@ BOOL Above(NSView *a, NSView *b) {
       [AwaitingFrames() removeObject:view];
       continue;
     }
+    if (view->_frameHold.restoring) continue;
     NSView *widget = RenderWidgetIn(view->_tab.view);
     if (!widget || ![FrameMarkOf(widget) isEqualToArray:view->_frameHold.mark]) [view frameShown:YES];
   }
@@ -394,6 +422,7 @@ BOOL Above(NSView *a, NSView *b) {
   [self dropStandIn];
   if (!_frameHold.awaiting) return;
   _frameHold.awaiting = NO;
+  _frameHold.restoring = NO;
   _frameHold.mark = nil;
   _frameHold.generation++;
   [AwaitingFrames() removeObject:self];
