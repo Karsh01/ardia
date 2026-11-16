@@ -20,7 +20,7 @@ import { barSplitsFrom, openFromBar, otherOpenTabs, switchFromBar, type Disposit
 import { openFromNewTabBar } from "../../state/omnibox/newTabBar";
 import type { NewTabTarget } from "../../state/browser/types";
 import { showFieldMenu } from "../../state/omnibox/paste";
-import { SuggestionIcon, SuggestionList, isRemovable, type RowActions } from "./SuggestionRow";
+import { SuggestionIcon, SuggestionList, isRemovable } from "./SuggestionRow";
 import { keywordScope } from "../../state/omnibox/scopes";
 import { setPopover } from "../../state/tabs/pageState";
 import { AddChip } from "./AddChip";
@@ -30,7 +30,8 @@ import { destinationLabel } from "./GoButton";
 import { BottomRow, DropdownFrame, PanelFrame } from "./OmniboxFrame";
 import { ScopePulse } from "./ScopePulse";
 import { barKeyDown, barKeyDownEvents, type BarKeyEvent } from "./omniboxKeys";
-import { ADD_CHIP, BAR, CRA_BAR } from "./tokens";
+import { ADD_CHIP, BAR, CREST } from "./tokens";
+import { CrestEnds, CrestResults, crestArrange, type CrestActions } from "./CrestPalette";
 import { useBarItems } from "./useBarItems";
 import { useHeldSelection, useProviderEnter } from "./heldSelection";
 import { useBarText } from "./useBarText";
@@ -66,7 +67,7 @@ export function Omnibox({
   const engine = useSettings((st) => defaultSearchEngine(st));
   const currentUrl = useTab(tabId, (t) => (opensTab ? "" : (t?.url ?? "")));
   const hero = variant === "hero";
-  const cra = variant === "panel" && floating;
+  const crest = variant === "panel" && floating;
   const dropdown = variant === "sidebar";
   const noneSelected = opensTab ? -1 : 0;
   const bar = useBarText(hero, tabId, initialText, noneSelected);
@@ -77,7 +78,7 @@ export function Omnibox({
   useEffect(() => bangEnter.cancel(), [bangEnter, typed, selected, scope]);
   const root = useRef<View>(null);
 
-  const { items: allItems, completion, inline, shownCompletion, value, selectedIndex, current, tabScope, previewing, unpreviewed } = useBarItems({
+  const { items, completion, inline, shownCompletion, value, selectedIndex, current, tabScope, previewing, unpreviewed } = useBarItems({
     input,
     typed,
     edited,
@@ -90,9 +91,9 @@ export function Omnibox({
     profileId,
     tabId,
     currentUrl,
+    arrange: crest ? crestArrange : undefined,
   });
 
-  const items = cra ? allItems.slice(0, CRA_BAR.maxRows) : allItems;
   useHeldSelection(items, typed, scope, selectedIndex, dispatch);
   const waitForProvider = useProviderEnter(items, typed, scope, (s, disposition) => choose(s, disposition));
 
@@ -267,10 +268,10 @@ export function Omnibox({
   });
 
   const leadingIcon =
-    current && (typed || scope) && current.kind !== "search" && !(scope?.kind === "provider" && current.kind === "provider") ? (
+    !crest && current && (typed || scope) && current.kind !== "search" && !(scope?.kind === "provider" && current.kind === "provider") ? (
       <SuggestionIcon suggestion={current} color={theme.textPrimary} />
     ) : (
-      <Symbol name={incognito ? INCOGNITO_ICON : "magnifyingglass"} size={cra ? CRA_BAR.glyph : BAR.leadingIcon} weight="medium" color={hero ? theme.textSecondary : theme.textPrimary} style={{ width: BAR.iconSlot, height: BAR.iconSlot }} />
+      <Symbol name={incognito ? INCOGNITO_ICON : "magnifyingglass"} size={crest ? CREST.glyph : BAR.leadingIcon} weight="medium" color={hero || crest ? theme.textSecondary : theme.textPrimary} style={crest ? { width: CREST.glyph + 4, height: CREST.glyph + 4 } : { width: BAR.iconSlot, height: BAR.iconSlot }} />
     );
 
   const focused = useRef(false);
@@ -288,7 +289,7 @@ export function Omnibox({
     <BarField
       inputRef={input}
       variant={variant}
-      floating={floating} cra={cra}
+      floating={floating} crest={crest}
       scope={scope}
       incognito={incognito}
       onLayout={focusOnce}
@@ -330,17 +331,17 @@ export function Omnibox({
       setPopover(latest.current.tabId, "siteControls");
     },
   }));
-  const [rowActions] = useState<RowActions>(() => ({
+  const [rowActions] = useState<CrestActions>(() => ({ select: (index) => dispatch({ kind: "selected", index }),
     choose: (s) => latest.current.choose(s),
     remove: (url) => removeHistory(latest.current.profileId, [url]),
   }));
-  const suggestionList = (
+  const suggestionList = crest ? <CrestResults items={items} idle={!!opensTab && !scope && !typed.trim()} selectedIndex={selectedIndex} actions={rowActions} /> : (
     <SuggestionList
       items={items}
       selectedIndex={selectedIndex}
       trailing={tabScope ? `Search ${tabScope.name}  ⇥` : null}
       dropdown={dropdown}
-      actions={rowActions} cra={cra}
+      actions={rowActions}
     />
   );
 
@@ -366,9 +367,9 @@ export function Omnibox({
       leadingIcon={leadingIcon}
       scope={scope}
       field={field}
-      list={listAway || !items.length || (!hero && !(edited && typed.trim())) ? null : suggestionList}
+      list={crest ? suggestionList : listAway || !items.length || (!hero && !(edited && typed.trim())) ? null : suggestionList}
       pulse={pulse}
-      hero={hero} cra={cra}
+      hero={hero} crest={crest ? CrestEnds({ scope, offered: tabScope, completion: !!shownCompletion, dispatch, from: typed + shownCompletion, onClose: () => onCancel?.() }) : null}
       rowHeight={fieldRowHeight}
       bottom={
         hero ? <BottomRow

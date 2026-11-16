@@ -3,7 +3,7 @@ import type { ComponentProps, RefObject } from "react";
 import { TextInput } from "react-native";
 import { useTheme } from "../ui";
 import { PASTED_TYPES } from "./omniboxKeys";
-import { BAR, BAR_TYPE, CRA_BAR } from "./tokens";
+import { BAR, BAR_TYPE, CREST } from "./tokens";
 
 type InputProps = ComponentProps<typeof TextInput>;
 
@@ -11,7 +11,7 @@ export function BarField({
   inputRef,
   variant,
   floating,
-  cra = false,
+  crest = false,
   scope,
   incognito,
   focusEcho,
@@ -23,7 +23,7 @@ export function BarField({
   onSelection(next: { start: number; end: number }): void;
   variant: "panel" | "hero" | "sidebar";
   floating: boolean;
-  cra?: boolean;
+  crest?: boolean;
   scope: SearchScope | null;
   incognito: boolean;
 } & Pick<InputProps, "value" | "onLayout" | "onChangeText" | "onSubmitEditing" | "onFocus" | "onBlur" | "keyDownEvents" | "onKeyDown">) {
@@ -46,17 +46,18 @@ export function BarField({
         }
         onSelection(next);
       }}
-      placeholder={scope ? (cra ? "Search…" : `Search ${scope.name}`) : incognito ? "Search privately or enter address" : cra ? "Search or Enter URL…" : "Search or enter address"}
-      placeholderTextColor={cra ? CRA_BAR.placeholder : theme.placeholder}
+      placeholder={scope ? (crest ? `Search ${scope.name}…` : `Search ${scope.name}`) : incognito ? "Search privately or enter address" : crest ? "Search or Enter URL…" : "Search or enter address"}
+      placeholderTextColor={theme.placeholder}
       pastedTypes={PASTED_TYPES}
       selectionColor={theme.selection}
       enableFocusRing={false}
       style={{
         flex: 1,
-        ...(cra ? CRA_BAR.field : type),
+        ...(crest ? CREST.field : type),
+        height: crest ? CREST.fieldInputHeight : undefined,
         color: theme.textPrimary,
         paddingVertical: 0,
-        marginTop: variant === "panel" && !cra ? BAR.panelFieldLift : 0,
+        marginTop: variant === "panel" && !crest ? BAR.panelFieldLift : 0,
       }}
     />
   );

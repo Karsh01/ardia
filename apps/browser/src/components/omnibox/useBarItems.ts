@@ -1,4 +1,4 @@
-import type { SearchScope } from "@ardia/core";
+import type { SearchScope, Suggestion } from "@ardia/core";
 import { useMemo, type RefObject } from "react";
 import type { TextInput } from "react-native";
 import { previewText } from "./barText";
@@ -20,6 +20,7 @@ export function useBarItems({
   profileId,
   tabId,
   currentUrl,
+  arrange,
 }: {
   input: RefObject<TextInput | null>;
   typed: string;
@@ -33,6 +34,7 @@ export function useBarItems({
   profileId: string;
   tabId: string;
   currentUrl: string;
+  arrange?: (items: Suggestion[], idle: boolean) => Suggestion[];
 }) {
   const { items: suggested, completion } = useSuggestions({
     text: typed,
@@ -47,8 +49,9 @@ export function useBarItems({
   const start = useDropdownStart(dropdown && !edited && !scope, tabId, profileId);
   const idle = opensTab && !scope && !typed.trim();
   const openTabs = useOpenTabsStart(idle, windowId, profileId);
-  const items = dropdown && !edited && !scope ? start : idle ? openTabs : suggested;
-  const unpreviewed = idle ? -1 : 0;
+  const listed = dropdown && !edited && !scope ? start : idle ? openTabs : suggested;
+  const items = useMemo(() => (arrange ? arrange(listed, idle) : listed), [arrange, listed, idle]);
+  const unpreviewed = arrange ? Infinity : idle ? -1 : 0;
   const selectedIndex = selected < 0 && idle ? -1 : Math.min(Math.max(selected, 0), items.length - 1);
   const current = items[selectedIndex];
   const preview = selectedIndex > unpreviewed ? (previewText(current) ?? typed) : null;

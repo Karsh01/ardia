@@ -1,6 +1,6 @@
 import { OutsidePressArea, reduceMotion, Surface } from "../ui";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
-import { Animated, StyleSheet, View, type LayoutChangeEvent } from "react-native";
+import { Animated, Pressable, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { hex, useTheme } from "../ui/theme";
 import { useSidebarSide, useWindowId, useWindowUi } from "../../state/browser/hooks";
 import { closePanel } from "../../state/windows/actions";
@@ -12,7 +12,8 @@ import { useCardAnchors, useUrlAnchors } from "../../state/windows/layout";
 import { closeNewTabBar } from "../../state/omnibox/newTabBar";
 import type { NewTabTarget } from "../../state/browser/types";
 import { Omnibox } from "./Omnibox";
-import { BAR, CRA_BAR, PANEL_TEXT_LEFT, GROW } from "./tokens";
+import { BAR, CREST, PANEL_TEXT_LEFT, GROW } from "./tokens";
+import { GlassFill, liquidGlass } from "../ui/Glass";
 import { closePanelToHeroBar, type BarDismissal } from "../../state/omnibox/barState";
 import { insecureLevel, urlTextLeft } from "../toolbar/Toolbar";
 import { useToolbarRow } from "../toolbar/useToolbarRow";
@@ -58,11 +59,9 @@ export function CommandPanel({ windowWidth }: { windowWidth: number }) {
 
   if (centred && card) {
     return (
-      <Grow from={null} frame={centredFrame(card)} openHeight={CRA_BAR.fieldHeight} radius={CRA_BAR.radius} surface={craSurface(theme)}>
-        <OutsidePressArea onOutsidePress={onCancel}>
-          <Omnibox key={activeId} variant="panel" floating tabId={activeId} initialText={panel.initialText} onCancel={onCancel} onDone={onDone} />
-        </OutsidePressArea>
-      </Grow>
+      <CrestOverlay card={card} onCancel={onCancel}>
+        <Omnibox key={activeId} variant="panel" floating tabId={activeId} initialText={panel.initialText} onCancel={onCancel} onDone={onDone} />
+      </CrestOverlay>
     );
   }
   if (!anchor) return null;
@@ -112,43 +111,46 @@ function panelSurface(theme: ReturnType<typeof useTheme>, radius: number) {
   };
 }
 
-function craSurface(theme: ReturnType<typeof useTheme>) {
-  const tone = theme.dark ? "dark" : "light";
-  return {
-    fill: hex(CRA_BAR.fill[tone]),
-    cornerRadius: CRA_BAR.radius,
-    borderColor: hex(CRA_BAR.border[tone]),
-    borderWidth: 1,
-    shadowColor: shadow.dialog.color,
-    shadowOpacity: theme.panelShadowOpacity,
-    shadowRadius: shadow.dialog.radius,
-    shadowOffset: shadow.dialog.offset,
-  };
+function crestFrame(card: Box) {
+  const results = Math.max(CREST.resultsMin, Math.min(CREST.resultsMax, card.height - (CREST.cardPadding * 2 + CREST.fieldHeight + CREST.hairline)));
+  const height = CREST.fieldHeight + CREST.hairline + results;
+  const width = Math.min(CREST.cardMaxWidth, Math.max(0, card.width - CREST.cardPadding * 2));
+  const top = card.top + Math.max(CREST.cardPadding, (card.height - height) / 2);
+  return { left: card.left + (card.width - width) / 2, top, width, height };
 }
 
-function centredFrame(card: Box) {
-  const width = Math.min(CRA_BAR.width, card.width - CRA_BAR.windowMargin);
-  const left = card.left + (card.width - width) / 2;
-  const top = card.top + Math.max(WINDOW_MARGIN, Math.round(card.height / 2 - CRA_BAR.aboveMiddle));
-  return { left, top, width };
+function CrestOverlay({ card, onCancel, children }: { card: Box; onCancel(): void; children: ReactNode }) {
+  const theme = useTheme();
+  const [shown] = useState(() => new Animated.Value(reduceMotion() ? 1 : 0));
+  useEffect(() => {
+    Animated.timing(shown, { toValue: 1, ...GROW, useNativeDriver: true }).start();
+  }, [shown]);
+  const frame = crestFrame(card);
+  const scale = shown.interpolate({ inputRange: [0, 1], outputRange: [CREST.openScale, 1] });
+  return (
+    <>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: shown }]}>
+        <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: CREST.scrim }]} onPress={onCancel} />
+      </Animated.View>
+      <Animated.View style={{ position: "absolute", ...frame, opacity: shown, transform: [{ scale }] }}>
+        {liquidGlass ? (
+          <GlassFill radius={CREST.cardRadius} panelFill={theme.ntpBarSolid} />
+        ) : (
+          <Surface {...panelSurface(theme, CREST.cardRadius)} style={StyleSheet.absoluteFill} />
+        )}
+        <View style={{ flex: 1, borderRadius: CREST.cardRadius, overflow: "hidden" }}>{children}</View>
+      </Animated.View>
+    </>
+  );
 }
 
 function CentredBar({ windowId, tabId, target, card }: { windowId: string; tabId: string; target: NewTabTarget; card: Box }) {
-  const theme = useTheme();
   const onCancel = () => closePanel(windowId);
   const onDone = () => closeNewTabBar(windowId);
   return (
-    <Grow
-      from={null}
-      frame={centredFrame(card)}
-      openHeight={CRA_BAR.fieldHeight}
-      radius={CRA_BAR.radius}
-      surface={craSurface(theme)}
-    >
-      <OutsidePressArea onOutsidePress={onCancel}>
-        <Omnibox key={`newTab:${target.kind}`} variant="panel" floating tabId={tabId} opensTab={target} onCancel={onCancel} onDone={onDone} />
-      </OutsidePressArea>
-    </Grow>
+    <CrestOverlay card={card} onCancel={onCancel}>
+      <Omnibox key={`newTab:${target.kind}`} variant="panel" floating tabId={tabId} opensTab={target} onCancel={onCancel} onDone={onDone} />
+    </CrestOverlay>
   );
 }
 
